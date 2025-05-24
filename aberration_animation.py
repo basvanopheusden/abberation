@@ -78,13 +78,18 @@ for _ in range(n_rays):
     lines.append(line)
 
 
-def compute_frame(t, n_ratio=1.4):
+def compute_frame(t, n_ratio=1.4, incoming_angles=None):
     """Return surface coordinates and ray parameters for a given ``t``.
 
     Parameters
     ----------
     t : float
         Interpolation parameter between ``0`` and ``1``.
+    n_ratio : float, optional
+        Ratio of refractive indices used when applying Snell's law.
+    incoming_angles : array-like of float, optional
+        Final incoming angles for each ray. When ``None`` the module level
+        ``incoming_final_angles`` are used.
 
     Returns
     -------
@@ -108,6 +113,9 @@ def compute_frame(t, n_ratio=1.4):
     intercepts = []
     kinks = []
 
+    if incoming_angles is None:
+        incoming_angles = incoming_final_angles
+
     for idx, y in enumerate(ys):
         if np.abs(y) <= r:
             x_int = np.sqrt(r**2 - y**2) - r + plane_x
@@ -117,7 +125,7 @@ def compute_frame(t, n_ratio=1.4):
             normal_angle = 0.0
 
         # orientation of the incoming ray for this ``t``
-        inc_angle = t * incoming_final_angles[idx]
+        inc_angle = t * incoming_angles[idx]
 
         phi_in = np.abs(inc_angle - normal_angle)
         # multiply by ``n_ratio`` so that ``n_ratio > 1`` focuses the rays
@@ -160,6 +168,67 @@ def distance_to_focus(slope, intercept, focal_point=(1.2, 0.0)):
     slope = np.asarray(slope)
     intercept = np.asarray(intercept)
     return np.abs(slope * x0 + intercept - y0) / np.sqrt(slope**2 + 1)
+
+
+def total_distance_to_focus(t, max_in_angle, focal_point=(1.2, 0.0)):
+    """Return the summed distance of all rays to ``focal_point``.
+
+    Parameters
+    ----------
+    t : float
+        Interpolation parameter passed to :func:`compute_frame`.
+    max_in_angle : float
+        Maximum incoming angle used to generate the rays.  The individual
+        incoming angles are spaced linearly from ``max_in_angle`` to
+        ``-max_in_angle`` while keeping their vertical intercepts fixed.
+    focal_point : tuple of float, optional
+        Coordinates of the focal point.
+
+    Returns
+    -------
+    float
+        Sum of :func:`distance_to_focus` for all rays.
+    """
+
+    in_angles = np.linspace(max_in_angle, -max_in_angle, n_rays)
+    _, slopes, intercepts, _ = compute_frame(t, incoming_angles=in_angles)
+    return float(np.sum(distance_to_focus(slopes, intercepts, focal_point)))
+
+
+def find_optimal_max_in_angle(t, focal_point=(1.2, 0.0), search_angles=None):
+    """Return the ``max_in_angle`` that minimizes the total distance.
+
+    Parameters
+    ----------
+    t : float
+        Interpolation parameter passed to :func:`compute_frame`.
+    focal_point : tuple of float, optional
+        Coordinates of the focal point.
+    search_angles : array-like of float, optional
+        Sequence of candidate ``max_in_angle`` values to search.  When ``None``
+        a default grid between ``0`` and ``0.6`` radians is used.
+
+    Returns
+    -------
+    tuple
+        ``(best_angle, min_total_distance)`` where ``best_angle`` is the angle
+        from ``search_angles`` that yields the smallest total distance and
+        ``min_total_distance`` is that minimal distance.
+    """
+
+    if search_angles is None:
+        search_angles = np.linspace(0.0, 0.6, 50)
+
+    best_angle = None
+    min_dist = np.inf
+
+    for angle in search_angles:
+        dist = total_distance_to_focus(t, angle, focal_point)
+        if dist < min_dist:
+            min_dist = dist
+            best_angle = angle
+
+    return best_angle, min_dist
 
 
 def update(frame):
