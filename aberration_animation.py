@@ -6,7 +6,6 @@ from matplotlib.patches import Polygon
 
 # Parameters
 # Number of rays and animation frames
-n_rays = 7
 n_rays = 11
 frames = 120
 
