@@ -30,4 +30,4 @@ def test_snells_law_and_kinks():
         if np.sin(abs(normal_angle)) == 0 and out_angle == 0:
             continue
         ratio = np.sin(abs(normal_angle)) / np.sin(out_angle)
-        assert np.isclose(ratio, n_ratio)
+        assert np.isclose(ratio, 1 / n_ratio)
