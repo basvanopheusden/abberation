@@ -33,6 +33,39 @@ radius = 0.5
 # y-range is fixed so that we only see the segment between -0.6 and 0.6
 surf_y = np.linspace(-0.6, 0.6, 200)
 
+
+def build_patch(x_values):
+    """Return coordinates for the background patches.
+
+    Parameters
+    ----------
+    x_values : np.ndarray
+        x coordinates of the optical surface corresponding to ``surf_y``.
+
+    Returns
+    -------
+    tuple of np.ndarray
+        ``(left_xy, right_xy)`` polygon vertices for the left and right
+        background patches.
+    """
+
+    mask = ~np.isnan(x_values)
+    left_xy = np.vstack(
+        (
+            [-1.2, -0.6],
+            [-1.2, 0.6],
+            np.column_stack((x_values[mask][::-1], surf_y[mask][::-1])),
+        )
+    )
+    right_xy = np.vstack(
+        (
+            [1.7, -0.6],
+            [1.7, 0.6],
+            np.column_stack((x_values[mask][::-1], surf_y[mask][::-1])),
+        )
+    )
+    return left_xy, right_xy
+
 # background colors following the optical interface
 phase0 = 0
 t0 = (np.sin(phase0) + 1) / 2
@@ -45,23 +78,7 @@ x0 = np.where(
     np.sqrt(r0**2 - surf_y**2) - r0 + plane_x,
     np.nan,
 )
-mask0 = ~np.isnan(x0)
-left_xy = np.vstack(
-    (
-        [-1.2, -0.6],
-        [-1.2, 0.6],
-        np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
-    )
-)
-right_xy = np.vstack(
-    (
-        [1.7, -0.6],
-        [1.7, 0.6],
-        # traverse the optical surface from top to bottom so that the
-        # patch boundary exactly follows the semicircle
-        np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
-    )
-)
+left_xy, right_xy = build_patch(x0)
 left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
 right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
 ax.add_patch(left_patch)
@@ -250,23 +267,7 @@ def update(frame):
         line.set_data([-1.0, x_int, x_final], [y_start, y_int, y_final])
 
     surface.set_data(x, surf_y)
-    mask = ~np.isnan(x)
-    left_xy = np.vstack(
-        (
-            [-1.2, -0.6],
-            [-1.2, 0.6],
-            np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
-        )
-    )
-    right_xy = np.vstack(
-        (
-            [1.7, -0.6],
-            [1.7, 0.6],
-            # use the same orientation as ``left_xy`` so the interface
-            # between the two patches precisely matches the optical surface
-            np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
-        )
-    )
+    left_xy, right_xy = build_patch(x)
     left_patch.set_xy(left_xy)
     right_patch.set_xy(right_xy)
     return lines + [surface, left_patch, right_patch]
