@@ -64,7 +64,10 @@ def update(frame):
         line.set_data(pts[:, 0], pts[:, 1])
 
     # radius grows so that the semi-circle approaches a vertical plane
-    r = radius + t * (50 - radius)
+    start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
+    end_angle = np.arcsin(0.6 / 50)
+    angle = (1 - t) * start_angle + t * end_angle
+    r = 0.6 / np.sin(angle)
     x = np.where(
         np.abs(surf_y) <= r,
         np.sqrt(r**2 - surf_y**2) - r + plane_x,
