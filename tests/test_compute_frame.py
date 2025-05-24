@@ -31,3 +31,29 @@ def test_snells_law_and_kinks():
             continue
         ratio = np.sin(abs(normal_angle)) / np.sin(out_angle)
         assert np.isclose(ratio, n_ratio)
+
+
+def test_surface_at_plane():
+    x, slopes, _, _ = compute_frame(1.0)
+    # at t=1 the surface should be nearly a plane located at ``plane_x``
+    assert np.allclose(x, plane_x, atol=5e-3)
+    # outgoing rays should be almost horizontal with a very small tilt
+    assert np.all(np.abs(slopes) < 1e-2)
+
+
+def test_symmetry_of_rays():
+    t = 0.6
+    x, slopes, intercepts, kinks = compute_frame(t)
+    # surface is symmetric so ray parameters must be symmetric as well
+    for i in range(len(ys) // 2):
+        j = -(i + 1)
+        assert np.isclose(slopes[i], -slopes[j])
+        assert np.isclose(intercepts[i], -intercepts[j])
+        assert np.isclose(kinks[i], kinks[j])
+
+
+def test_no_refraction_when_n_equal():
+    _, slopes, intercepts, _ = compute_frame(0.4, n_ratio=1.0)
+    # with matching refractive indices rays should remain horizontal
+    assert np.allclose(slopes, 0.0)
+    assert np.allclose(intercepts, ys)
