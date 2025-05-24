@@ -3,6 +3,15 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon
 
+# Reusable numeric constants
+CLIP_EPS = 1e-9
+REFERENCE_DISTANCE = 0.6
+FAR_DISTANCE = 50
+FOCAL_POINT = (1.2, 0.0)
+X_MIN = -1.2
+X_MAX = 1.7
+ANIM_INTERVAL = 50
+
 
 # Parameters
 # Number of rays and animation frames
@@ -25,22 +34,25 @@ ys = np.linspace(-0.4, 0.4, n_rays)
 plane_x = 0.5
 
 fig, ax = plt.subplots(figsize=(6, 4))
-ax.set_xlim(-1.2, 1.7)
-ax.set_ylim(-0.6, 0.6)
+ax.set_xlim(X_MIN, X_MAX)
+ax.set_ylim(-REFERENCE_DISTANCE, REFERENCE_DISTANCE)
 ax.set_aspect("equal")
 ax.axis("off")
 
 radius = 0.5
-# y-range is fixed so that we only see the segment between -0.6 and 0.6
-surf_y = np.linspace(-0.6, 0.6, 200)
+# y-range is fixed so that we only see the segment between
+# ``-REFERENCE_DISTANCE`` and ``REFERENCE_DISTANCE``
+surf_y = np.linspace(-REFERENCE_DISTANCE, REFERENCE_DISTANCE, 200)
 
 # background colors following the optical interface
 phase0 = 0
 t0 = (np.sin(phase0) + 1) / 2
-start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
-end_angle = np.arcsin(0.6 / 50)
+start_angle = np.arcsin(
+    np.clip(REFERENCE_DISTANCE / radius, -1 + CLIP_EPS, 1 - CLIP_EPS)
+)
+end_angle = np.arcsin(REFERENCE_DISTANCE / FAR_DISTANCE)
 angle0 = (1 - t0) * start_angle + t0 * end_angle
-r0 = 0.6 / np.sin(angle0)
+r0 = REFERENCE_DISTANCE / np.sin(angle0)
 x0 = np.where(
     np.abs(surf_y) <= r0,
     np.sqrt(r0**2 - surf_y**2) - r0 + plane_x,
@@ -49,15 +61,15 @@ x0 = np.where(
 mask0 = ~np.isnan(x0)
 left_xy = np.vstack(
     (
-        [-1.2, -0.6],
-        [-1.2, 0.6],
+        [X_MIN, -REFERENCE_DISTANCE],
+        [X_MIN, REFERENCE_DISTANCE],
         np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
     )
 )
 right_xy = np.vstack(
     (
-        [1.7, -0.6],
-        [1.7, 0.6],
+        [X_MAX, -REFERENCE_DISTANCE],
+        [X_MAX, REFERENCE_DISTANCE],
         # traverse the optical surface from top to bottom so that the
         # patch boundary exactly follows the semicircle
         np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
@@ -94,10 +106,12 @@ def compute_frame(t, n_ratio=1.4):
         ``intercepts`` describe the refracted rays and ``kinks`` gives the x
         position where each incoming ray meets the surface.
     """
-    start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
-    end_angle = np.arcsin(0.6 / 50)
+    start_angle = np.arcsin(
+        np.clip(REFERENCE_DISTANCE / radius, -1 + CLIP_EPS, 1 - CLIP_EPS)
+    )
+    end_angle = np.arcsin(REFERENCE_DISTANCE / FAR_DISTANCE)
     angle = (1 - t) * start_angle + t * end_angle
-    r = 0.6 / np.sin(angle)
+    r = REFERENCE_DISTANCE / np.sin(angle)
     x = np.where(
         np.abs(surf_y) <= r,
         np.sqrt(r**2 - surf_y**2) - r + plane_x,
@@ -122,7 +136,7 @@ def compute_frame(t, n_ratio=1.4):
         phi_in = np.abs(inc_angle - normal_angle)
         # multiply by ``n_ratio`` so that ``n_ratio > 1`` focuses the rays
         phi_out = np.arcsin(
-            np.clip(np.sin(phi_in) * n_ratio, -1 + 1e-9, 1 - 1e-9)
+            np.clip(np.sin(phi_in) * n_ratio, -1 + CLIP_EPS, 1 - CLIP_EPS)
         )
         orient = normal_angle + np.sign(inc_angle - normal_angle) * phi_out
         m = np.tan(orient)
@@ -135,7 +149,7 @@ def compute_frame(t, n_ratio=1.4):
     return x, np.array(slopes), np.array(intercepts), np.array(kinks)
 
 
-def distance_to_focus(slope, intercept, focal_point=(1.2, 0.0)):
+def distance_to_focus(slope, intercept, focal_point=FOCAL_POINT):
     """Return the perpendicular distance from a ray to a focal point.
 
     The candidate ray is represented by ``y = slope * x + intercept``. The
@@ -148,7 +162,8 @@ def distance_to_focus(slope, intercept, focal_point=(1.2, 0.0)):
     intercept : float or ``np.ndarray``
         The intercept(s) of the candidate ray(s).
     focal_point : tuple of float, optional
-        The ``(x, y)`` coordinates of the focal point. Defaults to ``(1.2, 0)``.
+        The ``(x, y)`` coordinates of the focal point. Defaults to
+        ``FOCAL_POINT``.
 
     Returns
     -------
@@ -185,15 +200,15 @@ def update(frame):
     mask = ~np.isnan(x)
     left_xy = np.vstack(
         (
-            [-1.2, -0.6],
-            [-1.2, 0.6],
+            [X_MIN, -REFERENCE_DISTANCE],
+            [X_MIN, REFERENCE_DISTANCE],
             np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
         )
     )
     right_xy = np.vstack(
         (
-            [1.7, -0.6],
-            [1.7, 0.6],
+            [X_MAX, -REFERENCE_DISTANCE],
+            [X_MAX, REFERENCE_DISTANCE],
             # use the same orientation as ``left_xy`` so the interface
             # between the two patches precisely matches the optical surface
             np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
@@ -204,6 +219,6 @@ def update(frame):
     return lines + [surface, left_patch, right_patch]
 
 
-ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
+ani = FuncAnimation(fig, update, frames=frames, interval=ANIM_INTERVAL, blit=True)
 
 plt.show()
