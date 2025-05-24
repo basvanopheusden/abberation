@@ -11,29 +11,7 @@ frames = 120
 # y positions for incoming rays
 ys = np.linspace(-0.4, 0.4, n_rays)
 
-# Scenario 1: rays hit a circular lens and fail to meet at a single focus
-scenario1 = []
-for y in ys:
-    start = [-1.0, y]
-    lens_point = [0.0, y]
-    # rays diverge slightly after passing through the lens
-    final = [1.2, 0.2 * y]
-    scenario1.append(np.array([start, lens_point, final]))
-scenario1 = np.array(scenario1)
-
-# Scenario 2: rays aim toward a focus but are refracted by a plane
 plane_x = 0.5
-scenario2 = []
-for y in ys:
-    start = [-1.0, y]
-    # intersection with plane assuming ideal focus at (1, 0)
-    slope = -y / 2.0
-    y_plane = y + slope * (plane_x - (-1.0))
-    plane_point = [plane_x, y_plane]
-    # after refraction, rays miss the focus
-    final = [1.2, 0.25 * y]
-    scenario2.append(np.array([start, plane_point, final]))
-scenario2 = np.array(scenario2)
 
 fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_xlim(-1.2, 1.3)
@@ -87,8 +65,8 @@ for _ in range(n_rays):
     lines.append(line)
 
 
-def compute_frame(t):
-    """Return semicircle coordinates and ray slopes/intercepts for a given ``t``.
+def compute_frame(t, n_ratio=1.4):
+    """Return surface coordinates and ray parameters for a given ``t``.
 
     Parameters
     ----------
@@ -98,9 +76,10 @@ def compute_frame(t):
     Returns
     -------
     tuple
-        ``(x, slopes, intercepts)`` where ``x`` are the x coordinates of the
-        optical surface corresponding to ``surf_y`` and ``slopes``/
-        ``intercepts`` describe the rays after the surface.
+        ``(x, slopes, intercepts, kinks)`` where ``x`` are the x coordinates of
+        the optical surface corresponding to ``surf_y``. ``slopes`` and
+        ``intercepts`` describe the refracted rays and ``kinks`` gives the x
+        position where each incoming ray meets the surface.
     """
     start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
     end_angle = np.arcsin(0.6 / 50)
@@ -114,28 +93,42 @@ def compute_frame(t):
 
     slopes = []
     intercepts = []
-    for i in range(n_rays):
-        p1 = (1 - t) * scenario1[i, 1] + t * scenario2[i, 1]
-        p2 = (1 - t) * scenario1[i, 2] + t * scenario2[i, 2]
-        m = (p2[1] - p1[1]) / (p2[0] - p1[0])
-        b = p1[1] - m * p1[0]
+    kinks = []
+
+    for y in ys:
+        if np.abs(y) <= r:
+            x_int = np.sqrt(r**2 - y**2) - r + plane_x
+            normal_angle = np.arctan2(y, np.sqrt(r**2 - y**2))
+        else:
+            x_int = np.nan
+            normal_angle = 0.0
+
+        phi_in = np.abs(normal_angle)
+        phi_out = np.arcsin(np.sin(phi_in) / n_ratio)
+        orient = normal_angle - np.sign(normal_angle) * phi_out
+        m = np.tan(orient)
+        b = y - m * x_int
+
         slopes.append(m)
         intercepts.append(b)
+        kinks.append(x_int)
 
-    return x, np.array(slopes), np.array(intercepts)
+    return x, np.array(slopes), np.array(intercepts), np.array(kinks)
 
 
 def update(frame):
     phase = (frame / frames) * 2 * np.pi
     t = (np.sin(phase) + 1) / 2  # 0 -> 1 -> 0
 
-    for i, line in enumerate(lines):
-        p1 = scenario1[i]
-        p2 = scenario2[i]
-        pts = (1 - t) * p1 + t * p2
-        line.set_data(pts[:, 0], pts[:, 1])
+    x, slopes, intercepts, kinks = compute_frame(t)
 
-    x, _, _ = compute_frame(t)
+    for i, line in enumerate(lines):
+        x_int = kinks[i]
+        y_int = ys[i]
+        x_final = 1.2
+        y_final = slopes[i] * x_final + intercepts[i]
+        line.set_data([-1.0, x_int, x_final], [ys[i], y_int, y_final])
+
     surface.set_data(x, surf_y)
     mask = ~np.isnan(x)
     left_xy = np.vstack(
