@@ -69,7 +69,9 @@ right_xy = np.vstack(
     (
         [1.3, -0.6],
         [1.3, 0.6],
-        np.column_stack((x0[mask0], surf_y[mask0])),
+        # traverse the optical surface from top to bottom so that the
+        # patch boundary exactly follows the semicircle
+        np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
     )
 )
 left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
@@ -149,7 +151,9 @@ def update(frame):
         (
             [1.3, -0.6],
             [1.3, 0.6],
-            np.column_stack((x[mask], surf_y[mask])),
+            # use the same orientation as ``left_xy`` so the interface
+            # between the two patches precisely matches the optical surface
+            np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
         )
     )
     left_patch.set_xy(left_xy)
