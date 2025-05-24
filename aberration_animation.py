@@ -7,6 +7,7 @@ from matplotlib.patches import Polygon
 # Parameters
 # Number of rays and animation frames
 n_rays = 7
+n_rays = 11
 frames = 120
 
 # final incoming ray angles at ``t=1``.  The rays start out horizontal and
@@ -24,7 +25,7 @@ ys = np.linspace(-0.4, 0.4, n_rays)
 plane_x = 0.5
 
 fig, ax = plt.subplots(figsize=(6, 4))
-ax.set_xlim(-1.2, 1.3)
+ax.set_xlim(-1.2, 1.7)
 ax.set_ylim(-0.6, 0.6)
 ax.set_aspect("equal")
 ax.axis("off")
@@ -55,8 +56,8 @@ left_xy = np.vstack(
 )
 right_xy = np.vstack(
     (
-        [1.3, -0.6],
-        [1.3, 0.6],
+        [1.7, -0.6],
+        [1.7, 0.6],
         # traverse the optical surface from top to bottom so that the
         # patch boundary exactly follows the semicircle
         np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
@@ -149,7 +150,7 @@ def update(frame):
         m_in = np.tan(in_angle)
         y_start = y_int - m_in * (x_int + 1.0)
 
-        x_final = 1.2
+        x_final = 1.6
         y_final = slopes[i] * x_final + intercepts[i]
         line.set_data([-1.0, x_int, x_final], [y_start, y_int, y_final])
 
@@ -164,8 +165,8 @@ def update(frame):
     )
     right_xy = np.vstack(
         (
-            [1.3, -0.6],
-            [1.3, 0.6],
+            [1.7, -0.6],
+            [1.7, 0.6],
             # use the same orientation as ``left_xy`` so the interface
             # between the two patches precisely matches the optical surface
             np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
