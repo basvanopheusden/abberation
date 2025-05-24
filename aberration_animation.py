@@ -52,7 +52,7 @@ x_start = -1.0
 x_final = 1.6
 
 # axis limits and figure size
-xlim = (-1.2, 1.7)
+xlim = (x_start - 0.2, x_final + 0.1)
 ylim = (-aperture, aperture)
 figsize = (6, 4)
 
@@ -348,6 +348,14 @@ if __name__ == "__main__":
     parser.add_argument("--n-ratio", type=float, default=ref_index_ratio, help="refractive index ratio")
     parser.add_argument("--x-start", type=float, default=x_start, help="x coordinate where rays start")
     parser.add_argument("--x-final", type=float, default=x_final, help="x coordinate where rays end")
+    parser.add_argument(
+        "--xlim",
+        type=float,
+        nargs=2,
+        metavar=("XMIN", "XMAX"),
+        default=None,
+        help="x-axis limits for the plot",
+    )
     args = parser.parse_args()
 
     n_rays = args.n_rays
@@ -363,6 +371,10 @@ if __name__ == "__main__":
     ref_index_ratio = args.n_ratio
     x_start = args.x_start
     x_final = args.x_final
+    if args.xlim is None:
+        xlim = (x_start - 0.2, x_final + 0.1)
+    else:
+        xlim = tuple(args.xlim)
 
     incoming_final_angles = np.linspace(max_in_angle, -max_in_angle, n_rays)
     ys = np.linspace(-y_range, y_range, n_rays)
