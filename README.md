@@ -32,6 +32,9 @@ useful options are:
 | `--far-radius` | Effective radius when the surface is nearly a plane (default `50`). |
 | `--aperture` | Half height of the optical element and view window (default `0.6`). |
 | `--interval` | Delay between animation frames in milliseconds (default `50`). |
+| `--x-start` | X coordinate where rays originate (default `-1.0`). |
+| `--x-final` | X coordinate where rays terminate (default `1.6`). |
+| `--xlim` | X-axis limits for the plot (default computed from `x-start` and `x-final`). |
 
 For example, to animate with more rays and a slower frame rate run:
 
