@@ -1,0 +1,90 @@
+"""Matplotlib animation helpers."""
+
+from __future__ import annotations
+
+from typing import List
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
+
+from . import optics, params
+
+
+Lines = List[plt.Line2D]
+
+
+def build_patch(x_values):
+    """Return coordinates for the background patches."""
+    mask = ~np.isnan(x_values)
+    left_xy = (
+        [params.xlim[0], params.ylim[0]],
+        [params.xlim[0], params.ylim[1]],
+        *zip(x_values[mask][::-1], params.surf_y[mask][::-1]),
+    )
+    right_xy = (
+        [params.xlim[1], params.ylim[0]],
+        [params.xlim[1], params.ylim[1]],
+        *zip(x_values[mask][::-1], params.surf_y[mask][::-1]),
+    )
+    return np.array(left_xy), np.array(right_xy)
+
+
+# mutable objects used while animating
+fig = None
+ax = None
+lines: Lines = []
+surface = None
+left_patch = None
+right_patch = None
+
+
+def update(frame: int):
+    """Animation callback updating all artists for ``frame``."""
+    phase = (frame / params.frames) * 2 * np.pi
+    t = (np.sin(phase) + 1) / 2
+    x, slopes, intercepts, kinks = optics.compute_frame(t, n_ratio=params.ref_index_ratio)
+    for i, line in enumerate(lines):
+        x_int = kinks[i]
+        y_int = params.ys[i]
+        in_angle = t * params.incoming_final_angles[i]
+        m_in = np.tan(in_angle)
+        y_start = y_int - m_in * (x_int - params.x_start)
+        y_final = slopes[i] * params.x_final + intercepts[i]
+        line.set_data([params.x_start, x_int, params.x_final], [y_start, y_int, y_final])
+    surface.set_data(x, params.surf_y)
+    left_xy, right_xy = build_patch(x)
+    left_patch.set_xy(left_xy)
+    right_patch.set_xy(right_xy)
+    return lines + [surface, left_patch, right_patch]
+
+
+def run_animation() -> None:
+    """Create and display the matplotlib animation."""
+    global fig, ax, lines, surface, left_patch, right_patch
+
+    fig, ax = plt.subplots(figsize=params.figsize)
+    ax.set_xlim(*params.xlim)
+    ax.set_ylim(*params.ylim)
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    t0 = (np.sin(params.phase0) + 1) / 2
+    x0 = optics.surface_coordinates(t0)
+    left_xy, right_xy = build_patch(x0)
+    left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
+    right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
+    ax.add_patch(left_patch)
+    ax.add_patch(right_patch)
+
+    surface, = ax.plot([], [], lw=2, color="black")
+
+    lines = []
+    for _ in range(params.n_rays):
+        line, = ax.plot([], [], color="red")
+        lines.append(line)
+
+    FuncAnimation(fig, update, frames=params.frames, interval=params.interval, blit=True)
+    plt.show()
+
