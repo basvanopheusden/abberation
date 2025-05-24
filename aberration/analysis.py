@@ -51,7 +51,7 @@ def find_optimal_max_in_angle(
 ) -> Tuple[float, float]:
     """Return ``max_in_angle`` that minimizes :func:`total_distance_to_focus`."""
     if search_angles is None:
-        search_angles = np.linspace(0.0, 0.6, 50)
+        search_angles = np.linspace(0.0, 2.0, 1000)
 
     best_angle = float(search_angles[0])
     min_dist = float('inf')
