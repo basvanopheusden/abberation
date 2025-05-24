@@ -16,11 +16,21 @@ def distance_to_focus(
     intercept: FloatArray,
     focal_point: Tuple[float, float] = (1.2, 0.0),
 ) -> FloatArray:
-    """Return the perpendicular distance from rays to ``focal_point``."""
+    """Return the horizontal distance from rays to ``focal_point``.
+
+    The distance is measured along the ``x`` axis between ``x0`` and the
+    intersection of the ray with the horizontal line ``y = y0``.  Rays are
+    specified by ``slope`` and ``intercept`` in the form ``y = slope * x +
+    intercept``.
+    """
     x0, y0 = focal_point
     slope = np.asarray(slope)
     intercept = np.asarray(intercept)
-    return np.abs(slope * x0 + intercept - y0) / np.sqrt(slope**2 + 1)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        x_cross = np.where(slope != 0, (y0 - intercept) / slope, x0)
+
+    return np.abs(x_cross - x0)
 
 
 def total_distance_to_focus(
