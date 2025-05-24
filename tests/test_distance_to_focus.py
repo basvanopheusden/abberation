@@ -1,9 +1,11 @@
-import os
 import sys
+from pathlib import Path
 import numpy as np
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from aberration_animation import distance_to_focus, compute_frame
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from aberration.analysis import distance_to_focus
+from aberration.optics import compute_frame
 
 
 def test_distance_scalar():
@@ -17,3 +19,4 @@ def test_distance_vectorized():
     result = distance_to_focus(slopes, intercepts)
     expected = np.abs(slopes * 1.2 + intercepts) / np.sqrt(slopes ** 2 + 1)
     assert np.allclose(result, expected)
+
