@@ -39,6 +39,7 @@ lines: Lines = []
 surface = None
 left_patch = None
 right_patch = None
+focal_marker = None
 optimal_angles: List[float] = []
 t_values: List[float] = []
 
@@ -58,17 +59,19 @@ def update(frame: int):
         m_in = np.tan(in_angle)
         y_start = y_int - m_in * (x_int - params.x_start)
         y_final = slopes[i] * params.x_final + intercepts[i]
-        line.set_data([params.x_start, x_int, params.x_final], [y_start, y_int, y_final])
+        line.set_data(
+            [params.x_start, x_int, params.x_final], [y_start, y_int, y_final]
+        )
     surface.set_data(x, params.surf_y)
     left_xy, right_xy = build_patch(x)
     left_patch.set_xy(left_xy)
     right_patch.set_xy(right_xy)
-    return lines + [surface, left_patch, right_patch]
+    return lines + [surface, left_patch, right_patch, focal_marker]
 
 
 def run_animation() -> FuncAnimation:
     """Create and display the matplotlib animation and return it."""
-    global fig, ax, lines, surface, left_patch, right_patch, optimal_angles, t_values
+    global fig, ax, lines, surface, left_patch, right_patch, focal_marker, optimal_angles, t_values
 
     print("Calculating optimal angles ...")
     t_values = []
@@ -109,20 +112,22 @@ def run_animation() -> FuncAnimation:
     ax.add_patch(right_patch)
 
     # draw the focal point as a blue cross
-    ax.plot(
+    global focal_marker
+    (focal_marker,) = ax.plot(
         params.focal_point[0],
         params.focal_point[1],
         marker="x",
         color="blue",
         markersize=8,
         lw=2,
+        zorder=3,
     )
 
-    surface, = ax.plot([], [], lw=2, color="black")
+    (surface,) = ax.plot([], [], lw=2, color="black")
 
     lines = []
     for _ in range(params.n_rays):
-        line, = ax.plot([], [], color="red")
+        (line,) = ax.plot([], [], color="red")
         lines.append(line)
 
     # keep a reference to the animation object so it is not garbage collected
@@ -131,4 +136,3 @@ def run_animation() -> FuncAnimation:
     )
     plt.show()
     return anim
-
