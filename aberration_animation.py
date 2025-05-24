@@ -87,6 +87,44 @@ for _ in range(n_rays):
     lines.append(line)
 
 
+def compute_frame(t):
+    """Return semicircle coordinates and ray slopes/intercepts for a given ``t``.
+
+    Parameters
+    ----------
+    t : float
+        Interpolation parameter between ``0`` and ``1``.
+
+    Returns
+    -------
+    tuple
+        ``(x, slopes, intercepts)`` where ``x`` are the x coordinates of the
+        optical surface corresponding to ``surf_y`` and ``slopes``/
+        ``intercepts`` describe the rays after the surface.
+    """
+    start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
+    end_angle = np.arcsin(0.6 / 50)
+    angle = (1 - t) * start_angle + t * end_angle
+    r = 0.6 / np.sin(angle)
+    x = np.where(
+        np.abs(surf_y) <= r,
+        np.sqrt(r**2 - surf_y**2) - r + plane_x,
+        np.nan,
+    )
+
+    slopes = []
+    intercepts = []
+    for i in range(n_rays):
+        p1 = (1 - t) * scenario1[i, 1] + t * scenario2[i, 1]
+        p2 = (1 - t) * scenario1[i, 2] + t * scenario2[i, 2]
+        m = (p2[1] - p1[1]) / (p2[0] - p1[0])
+        b = p1[1] - m * p1[0]
+        slopes.append(m)
+        intercepts.append(b)
+
+    return x, np.array(slopes), np.array(intercepts)
+
+
 def update(frame):
     phase = (frame / frames) * 2 * np.pi
     t = (np.sin(phase) + 1) / 2  # 0 -> 1 -> 0
@@ -97,16 +135,7 @@ def update(frame):
         pts = (1 - t) * p1 + t * p2
         line.set_data(pts[:, 0], pts[:, 1])
 
-    # radius grows so that the semi-circle approaches a vertical plane
-    start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
-    end_angle = np.arcsin(0.6 / 50)
-    angle = (1 - t) * start_angle + t * end_angle
-    r = 0.6 / np.sin(angle)
-    x = np.where(
-        np.abs(surf_y) <= r,
-        np.sqrt(r**2 - surf_y**2) - r + plane_x,
-        np.nan,
-    )
+    x, _, _ = compute_frame(t)
     surface.set_data(x, surf_y)
     mask = ~np.isnan(x)
     left_xy = np.vstack(
