@@ -77,11 +77,11 @@ def run_animation() -> FuncAnimation:
         phase = (frame / params.frames) * 2 * np.pi
         t = (np.sin(phase) + 1) / 2
         t_values.append(t)
-        angle, _ = find_optimal_max_in_angle(t)
+        angle, _ = find_optimal_max_in_angle(t, focal_point=params.focal_point)
         optimal_angles.append(angle)
     print("Finished calculating optimal angles.")
     for t_val in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
-        angle, _ = find_optimal_max_in_angle(t_val)
+        angle, _ = find_optimal_max_in_angle(t_val, focal_point=params.focal_point)
         print(f"t={t_val:.1f} optimal angle={angle:.3f}")
 
     fig, ax = plt.subplots(figsize=params.figsize)
@@ -97,6 +97,16 @@ def run_animation() -> FuncAnimation:
     right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
     ax.add_patch(left_patch)
     ax.add_patch(right_patch)
+
+    # draw the focal point as a blue cross
+    ax.plot(
+        params.focal_point[0],
+        params.focal_point[1],
+        marker="x",
+        color="blue",
+        markersize=8,
+        lw=2,
+    )
 
     surface, = ax.plot([], [], lw=2, color="black")
 

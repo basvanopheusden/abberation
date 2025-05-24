@@ -23,6 +23,14 @@ def main() -> None:
     parser.add_argument("--n-ratio", type=float, default=params.ref_index_ratio, help="refractive index ratio")
     parser.add_argument("--x-start", type=float, default=params.x_start, help="x coordinate where rays start")
     parser.add_argument("--x-final", type=float, default=params.x_final, help="x coordinate where rays end")
+    parser.add_argument(
+        "--focal-point",
+        type=float,
+        nargs=2,
+        metavar=("X", "Y"),
+        default=params.focal_point,
+        help="focal point coordinates as 'x y'",
+    )
     args = parser.parse_args()
 
     params.n_rays = args.n_rays
@@ -38,6 +46,7 @@ def main() -> None:
     params.ref_index_ratio = args.n_ratio
     params.x_start = args.x_start
     params.x_final = args.x_final
+    params.focal_point = tuple(args.focal_point)
 
     params.incoming_final_angles = np.linspace(params.max_in_angle, -params.max_in_angle, params.n_rays)
     params.ys = np.linspace(-params.y_range, params.y_range, params.n_rays)

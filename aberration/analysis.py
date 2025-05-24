@@ -16,7 +16,7 @@ FloatArray = np.ndarray
 def distance_to_focus(
     slope: FloatArray,
     intercept: FloatArray,
-    focal_point: Tuple[float, float] = (1.2, 0.0),
+    focal_point: Tuple[float, float] = params.focal_point,
 ) -> FloatArray:
     """Return the horizontal distance from rays to ``focal_point``.
 
@@ -38,7 +38,7 @@ def distance_to_focus(
 def total_distance_to_focus(
     t: float,
     max_in_angle: float,
-    focal_point: Tuple[float, float] = (1.2, 0.0),
+    focal_point: Tuple[float, float] = params.focal_point,
 ) -> float:
     """Return the summed distance of all rays to ``focal_point``."""
     in_angles = np.linspace(max_in_angle, -max_in_angle, params.n_rays)
@@ -48,7 +48,7 @@ def total_distance_to_focus(
 
 def find_optimal_max_in_angle(
     t: float,
-    focal_point: Tuple[float, float] = (1.2, 0.0),
+    focal_point: Tuple[float, float] = params.focal_point,
     search_angles: Optional[Sequence[float]] = None,
 ) -> Tuple[float, float]:
     """Return ``max_in_angle`` that minimizes :func:`total_distance_to_focus`."""

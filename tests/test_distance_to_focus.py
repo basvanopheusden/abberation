@@ -21,3 +21,9 @@ def test_distance_vectorized():
         expected = np.abs(np.where(slopes != 0, (0.0 - intercepts) / slopes, 1.2) - 1.2)
     assert np.allclose(result, expected)
 
+
+def test_custom_focal_point():
+    result = distance_to_focus(1.0, 0.0, focal_point=(2.0, 0.1))
+    expected = np.abs((0.1 - 0.0) / 1.0 - 2.0)
+    assert np.isclose(result, expected)
+

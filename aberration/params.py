@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Tuple
+
 import numpy as np
 
 # number of rays and animation frames
@@ -38,6 +40,9 @@ ref_index_ratio: float = 1.4
 # x coordinates used for the rays
 x_start: float = -1.0
 x_final: float = 1.6
+
+# default focal point where rays should converge
+focal_point: Tuple[float, float] = (1.2, 0.0)
 
 # axis limits and figure size
 xlim = (-1.2, 1.7)
