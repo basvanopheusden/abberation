@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
 
 # Parameters
@@ -40,16 +41,49 @@ ax.set_ylim(-0.6, 0.6)
 ax.set_aspect("equal")
 ax.axis("off")
 
-# optical element that morphs from a semi-circle to a plane
 radius = 0.5
 # y-range is fixed so that we only see the segment between -0.6 and 0.6
 surf_y = np.linspace(-0.6, 0.6, 200)
-surface, = ax.plot([], [], lw=2, color="blue")
+
+# background colors following the optical interface
+phase0 = 0
+t0 = (np.sin(phase0) + 1) / 2
+start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
+end_angle = np.arcsin(0.6 / 50)
+angle0 = (1 - t0) * start_angle + t0 * end_angle
+r0 = 0.6 / np.sin(angle0)
+x0 = np.where(
+    np.abs(surf_y) <= r0,
+    np.sqrt(r0**2 - surf_y**2) - r0 + plane_x,
+    np.nan,
+)
+mask0 = ~np.isnan(x0)
+left_xy = np.vstack(
+    (
+        [-1.2, -0.6],
+        [-1.2, 0.6],
+        np.column_stack((x0[mask0][::-1], surf_y[mask0][::-1])),
+    )
+)
+right_xy = np.vstack(
+    (
+        [1.3, -0.6],
+        [1.3, 0.6],
+        np.column_stack((x0[mask0], surf_y[mask0])),
+    )
+)
+left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
+right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
+ax.add_patch(left_patch)
+ax.add_patch(right_patch)
+
+# optical element that morphs from a semi-circle to a plane
+surface, = ax.plot([], [], lw=2, color="black")
 
 # rays
 lines = []
 for _ in range(n_rays):
-    line, = ax.plot([], [], color="orange")
+    line, = ax.plot([], [], color="red")
     lines.append(line)
 
 
@@ -74,7 +108,24 @@ def update(frame):
         np.nan,
     )
     surface.set_data(x, surf_y)
-    return lines + [surface]
+    mask = ~np.isnan(x)
+    left_xy = np.vstack(
+        (
+            [-1.2, -0.6],
+            [-1.2, 0.6],
+            np.column_stack((x[mask][::-1], surf_y[mask][::-1])),
+        )
+    )
+    right_xy = np.vstack(
+        (
+            [1.3, -0.6],
+            [1.3, 0.6],
+            np.column_stack((x[mask], surf_y[mask])),
+        )
+    )
+    left_patch.set_xy(left_xy)
+    right_patch.set_xy(right_xy)
+    return lines + [surface, left_patch, right_patch]
 
 
 ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
