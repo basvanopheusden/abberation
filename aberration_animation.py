@@ -42,9 +42,8 @@ ax.axis("off")
 
 # optical element that morphs from a semi-circle to a plane
 radius = 0.5
-surf_y = np.linspace(-radius, radius, 200)
-semicircle_x = np.sqrt(radius**2 - surf_y**2)
-plane_xs = np.full_like(surf_y, plane_x)
+# y-range is fixed so that we only see the segment between -0.6 and 0.6
+surf_y = np.linspace(-0.6, 0.6, 200)
 surface, = ax.plot([], [], lw=2, color="blue")
 
 # rays
@@ -64,7 +63,13 @@ def update(frame):
         pts = (1 - t) * p1 + t * p2
         line.set_data(pts[:, 0], pts[:, 1])
 
-    x = (1 - t) * semicircle_x + t * plane_xs
+    # radius grows so that the semi-circle approaches a vertical plane
+    r = radius + t * (50 - radius)
+    x = np.where(
+        np.abs(surf_y) <= r,
+        np.sqrt(r**2 - surf_y**2) - r + plane_x,
+        np.nan,
+    )
     surface.set_data(x, surf_y)
     return lines + [surface]
 
