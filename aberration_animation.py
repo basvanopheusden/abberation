@@ -5,8 +5,14 @@ from matplotlib.patches import Polygon
 
 
 # Parameters
+# Number of rays and animation frames
 n_rays = 7
 frames = 120
+
+# final incoming ray angles at ``t=1``.  The rays start out horizontal and
+# smoothly rotate to these angles.
+max_in_angle = 0.3
+incoming_final_angles = np.linspace(-max_in_angle, max_in_angle, n_rays)
 
 # y positions for incoming rays
 ys = np.linspace(-0.4, 0.4, n_rays)
@@ -97,7 +103,7 @@ def compute_frame(t, n_ratio=1.4):
     intercepts = []
     kinks = []
 
-    for y in ys:
+    for idx, y in enumerate(ys):
         if np.abs(y) <= r:
             x_int = np.sqrt(r**2 - y**2) - r + plane_x
             normal_angle = np.arctan2(y, np.sqrt(r**2 - y**2))
@@ -105,12 +111,15 @@ def compute_frame(t, n_ratio=1.4):
             x_int = np.nan
             normal_angle = 0.0
 
-        phi_in = np.abs(normal_angle)
+        # orientation of the incoming ray for this ``t``
+        inc_angle = t * incoming_final_angles[idx]
+
+        phi_in = np.abs(inc_angle - normal_angle)
         # multiply by ``n_ratio`` so that ``n_ratio > 1`` focuses the rays
         phi_out = np.arcsin(
             np.clip(np.sin(phi_in) * n_ratio, -1 + 1e-9, 1 - 1e-9)
         )
-        orient = normal_angle - np.sign(normal_angle) * phi_out
+        orient = normal_angle + np.sign(inc_angle - normal_angle) * phi_out
         m = np.tan(orient)
         b = y - m * x_int
 
@@ -130,9 +139,15 @@ def update(frame):
     for i, line in enumerate(lines):
         x_int = kinks[i]
         y_int = ys[i]
+
+        # starting point of the incoming ray depends on its angle
+        in_angle = t * incoming_final_angles[i]
+        m_in = np.tan(in_angle)
+        y_start = y_int - m_in * (x_int + 1.0)
+
         x_final = 1.2
         y_final = slopes[i] * x_final + intercepts[i]
-        line.set_data([-1.0, x_int, x_final], [ys[i], y_int, y_final])
+        line.set_data([-1.0, x_int, x_final], [y_start, y_int, y_final])
 
     surface.set_data(x, surf_y)
     mask = ~np.isnan(x)
