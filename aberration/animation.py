@@ -41,6 +41,7 @@ left_patch = None
 right_patch = None
 focal_marker = None
 optimal_angles: List[float] = []
+optimal_distances: List[float] = []
 t_values: List[float] = []
 
 
@@ -71,27 +72,37 @@ def update(frame: int):
 
 def run_animation() -> FuncAnimation:
     """Create and display the matplotlib animation and return it."""
-    global fig, ax, lines, surface, left_patch, right_patch, focal_marker, optimal_angles, t_values
+    global fig, ax, lines, surface, left_patch, right_patch, focal_marker, optimal_angles, optimal_distances, t_values
 
     print("Calculating optimal angles ...")
     t_values = []
     optimal_angles = []
+    optimal_distances = []
     for frame in range(params.frames):
         phase = (frame / params.frames) * 2 * np.pi
         t = (np.sin(phase) + 1) / 2
         t_values.append(t)
-        angle, _ = find_optimal_max_in_angle(t, focal_point=params.focal_point)
+        angle, dist = find_optimal_max_in_angle(t, focal_point=params.focal_point)
         optimal_angles.append(angle)
+        optimal_distances.append(dist)
     print("Finished calculating optimal angles.")
     # plot optimal angle as a function of t before starting the animation
     sort_idx = np.argsort(t_values)
     t_sorted = np.array(t_values)[sort_idx]
     angles_sorted = np.array(optimal_angles)[sort_idx]
+    distances_sorted = np.array(optimal_distances)[sort_idx]
     plt.figure()
     plt.plot(t_sorted, angles_sorted)
     plt.xlabel("t")
     plt.ylabel("optimal angle (rad)")
     plt.title("Optimal angle vs t")
+    plt.show()
+    # plot the minimal distance returned by the optimizer for each t
+    plt.figure()
+    plt.plot(t_sorted, distances_sorted)
+    plt.xlabel("t")
+    plt.ylabel("distance")
+    plt.title("Minimum distance vs t")
     plt.show()
     for t_val in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
         angle, _ = find_optimal_max_in_angle(t_val, focal_point=params.focal_point)
