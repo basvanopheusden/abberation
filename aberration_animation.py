@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
 
 # Parameters
@@ -40,16 +41,22 @@ ax.set_ylim(-0.6, 0.6)
 ax.set_aspect("equal")
 ax.axis("off")
 
+# background colors
+left_patch = Polygon([], closed=True, fc="#F8F6ED", ec=None, zorder=0)
+right_patch = Polygon([], closed=True, fc="#EFE9DE", ec=None, zorder=0)
+ax.add_patch(left_patch)
+ax.add_patch(right_patch)
+
 # optical element that morphs from a semi-circle to a plane
 radius = 0.5
 # y-range is fixed so that we only see the segment between -0.6 and 0.6
 surf_y = np.linspace(-0.6, 0.6, 200)
-surface, = ax.plot([], [], lw=2, color="blue")
+surface, = ax.plot([], [], lw=2, color="black")
 
 # rays
 lines = []
 for _ in range(n_rays):
-    line, = ax.plot([], [], color="orange")
+    line, = ax.plot([], [], color="red")
     lines.append(line)
 
 
@@ -74,7 +81,22 @@ def update(frame):
         np.nan,
     )
     surface.set_data(x, surf_y)
-    return lines + [surface]
+
+    # update background patches so the color change follows the interface
+    left_coords = np.vstack([
+        [-1.2, surf_y[0]],
+        [-1.2, surf_y[-1]],
+        np.column_stack((x[::-1], surf_y[::-1])),
+    ]).reshape(-1, 2)
+    right_coords = np.vstack([
+        np.column_stack((x, surf_y)),
+        [1.3, surf_y[-1]],
+        [1.3, surf_y[0]],
+    ]).reshape(-1, 2)
+    left_patch.set_xy(left_coords)
+    right_patch.set_xy(right_coords)
+
+    return lines + [surface, left_patch, right_patch]
 
 
 ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
