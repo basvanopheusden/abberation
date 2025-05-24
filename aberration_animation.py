@@ -135,6 +135,33 @@ def compute_frame(t, n_ratio=1.4):
     return x, np.array(slopes), np.array(intercepts), np.array(kinks)
 
 
+def distance_to_focus(slope, intercept, focal_point=(1.2, 0.0)):
+    """Return the perpendicular distance from a ray to a focal point.
+
+    The candidate ray is represented by ``y = slope * x + intercept``. The
+    function computes the shortest distance from this line to ``focal_point``.
+
+    Parameters
+    ----------
+    slope : float or ``np.ndarray``
+        The slope(s) of the candidate ray(s).
+    intercept : float or ``np.ndarray``
+        The intercept(s) of the candidate ray(s).
+    focal_point : tuple of float, optional
+        The ``(x, y)`` coordinates of the focal point. Defaults to ``(1.2, 0)``.
+
+    Returns
+    -------
+    float or ``np.ndarray``
+        The perpendicular distance(s) from the ray(s) to ``focal_point``.
+    """
+
+    x0, y0 = focal_point
+    slope = np.asarray(slope)
+    intercept = np.asarray(intercept)
+    return np.abs(slope * x0 + intercept - y0) / np.sqrt(slope**2 + 1)
+
+
 def update(frame):
     phase = (frame / frames) * 2 * np.pi
     t = (np.sin(phase) + 1) / 2  # 0 -> 1 -> 0
