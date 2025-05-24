@@ -1,37 +1,79 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon
 
 
-# Parameters
-# Number of rays and animation frames
+# ---------------------------------------------------------------------------
+# Configurable parameters with default values. These values are overwritten
+# when the module is executed as a script and command line arguments are
+# provided.  They remain unchanged when imported so that the tests continue
+# to use the defaults.
+# ---------------------------------------------------------------------------
+
+# number of rays and animation frames
 n_rays = 11
 frames = 120
 
 # final incoming ray angles at ``t=1``.  The rays start out horizontal and
-# smoothly rotate to these angles.
-# final incoming ray angles. Rays above the horizontal should point
+# smoothly rotate to these angles. Rays above the horizontal should point
 # downward and those below should point upward when ``t=1``.  This is
 # accomplished by reversing the sign of the equally spaced angles so they
 # run from positive to negative as ``ys`` increases.
 max_in_angle = 0.3
-incoming_final_angles = np.linspace(max_in_angle, -max_in_angle, n_rays)
 
-# y positions for incoming rays
-ys = np.linspace(-0.4, 0.4, n_rays)
+# vertical range for incoming rays
+y_range = 0.4
 
+# x position of the optical plane when the surface is flat
 plane_x = 0.5
 
-fig, ax = plt.subplots(figsize=(6, 4))
-ax.set_xlim(-1.2, 1.7)
-ax.set_ylim(-0.6, 0.6)
-ax.set_aspect("equal")
-ax.axis("off")
-
+# radius of the initial spherical surface
 radius = 0.5
-# y-range is fixed so that we only see the segment between -0.6 and 0.6
-surf_y = np.linspace(-0.6, 0.6, 200)
+
+# effective radius when ``t=1`` (approximate plane)
+far_radius = 50.0
+
+# half height of the optical element and vertical axis limits
+aperture = 0.6
+
+# number of samples used to draw the surface
+surf_samples = 200
+
+# interval between frames in milliseconds
+interval = 50
+
+# refractive index ratio used in ``compute_frame``
+ref_index_ratio = 1.4
+
+# x coordinates used for the rays
+x_start = -1.0
+x_final = 1.6
+
+# axis limits and figure size
+xlim = (-1.2, 1.7)
+ylim = (-aperture, aperture)
+figsize = (6, 4)
+
+# phase offset for the background colors
+phase0 = 0.0
+
+
+# Arrays derived from the parameters. These will be updated if command line
+# arguments are supplied.
+incoming_final_angles = np.linspace(max_in_angle, -max_in_angle, n_rays)
+ys = np.linspace(-y_range, y_range, n_rays)
+surf_y = np.linspace(-aperture, aperture, surf_samples)
+
+
+# placeholders filled when the animation is created
+fig = None
+ax = None
+lines = []
+surface = None
+left_patch = None
+right_patch = None
 
 
 def build_patch(x_values):
@@ -52,46 +94,25 @@ def build_patch(x_values):
     mask = ~np.isnan(x_values)
     left_xy = np.vstack(
         (
-            [-1.2, -0.6],
-            [-1.2, 0.6],
+            [xlim[0], ylim[0]],
+            [xlim[0], ylim[1]],
             np.column_stack((x_values[mask][::-1], surf_y[mask][::-1])),
         )
     )
     right_xy = np.vstack(
         (
-            [1.7, -0.6],
-            [1.7, 0.6],
+            [xlim[1], ylim[0]],
+            [xlim[1], ylim[1]],
             np.column_stack((x_values[mask][::-1], surf_y[mask][::-1])),
         )
     )
     return left_xy, right_xy
 
-# background colors following the optical interface
-phase0 = 0
-t0 = (np.sin(phase0) + 1) / 2
-start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
-end_angle = np.arcsin(0.6 / 50)
-angle0 = (1 - t0) * start_angle + t0 * end_angle
-r0 = 0.6 / np.sin(angle0)
-x0 = np.where(
-    np.abs(surf_y) <= r0,
-    np.sqrt(r0**2 - surf_y**2) - r0 + plane_x,
-    np.nan,
-)
-left_xy, right_xy = build_patch(x0)
-left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
-right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
-ax.add_patch(left_patch)
-ax.add_patch(right_patch)
 
-# optical element that morphs from a semi-circle to a plane
-surface, = ax.plot([], [], lw=2, color="black")
-
-# rays
-lines = []
-for _ in range(n_rays):
-    line, = ax.plot([], [], color="red")
-    lines.append(line)
+# ---------------------------------------------------------------------------
+# Runtime setup is deferred until ``run_animation`` is called.  This keeps the
+# module importable without creating figures, which is important for the tests.
+# ---------------------------------------------------------------------------
 
 
 def compute_frame(t, n_ratio=1.4, incoming_angles=None):
@@ -115,10 +136,10 @@ def compute_frame(t, n_ratio=1.4, incoming_angles=None):
         ``intercepts`` describe the refracted rays and ``kinks`` gives the x
         position where each incoming ray meets the surface.
     """
-    start_angle = np.arcsin(np.clip(0.6 / radius, -1 + 1e-9, 1 - 1e-9))
-    end_angle = np.arcsin(0.6 / 50)
+    start_angle = np.arcsin(np.clip(aperture / radius, -1 + 1e-9, 1 - 1e-9))
+    end_angle = np.arcsin(aperture / far_radius)
     angle = (1 - t) * start_angle + t * end_angle
-    r = 0.6 / np.sin(angle)
+    r = aperture / np.sin(angle)
     x = np.where(
         np.abs(surf_y) <= r,
         np.sqrt(r**2 - surf_y**2) - r + plane_x,
@@ -251,7 +272,7 @@ def update(frame):
     phase = (frame / frames) * 2 * np.pi
     t = (np.sin(phase) + 1) / 2  # 0 -> 1 -> 0
 
-    x, slopes, intercepts, kinks = compute_frame(t)
+    x, slopes, intercepts, kinks = compute_frame(t, n_ratio=ref_index_ratio)
 
     for i, line in enumerate(lines):
         x_int = kinks[i]
@@ -260,11 +281,10 @@ def update(frame):
         # starting point of the incoming ray depends on its angle
         in_angle = t * incoming_final_angles[i]
         m_in = np.tan(in_angle)
-        y_start = y_int - m_in * (x_int + 1.0)
+        y_start = y_int - m_in * (x_int - x_start)
 
-        x_final = 1.6
         y_final = slopes[i] * x_final + intercepts[i]
-        line.set_data([-1.0, x_int, x_final], [y_start, y_int, y_final])
+        line.set_data([x_start, x_int, x_final], [y_start, y_int, y_final])
 
     surface.set_data(x, surf_y)
     left_xy, right_xy = build_patch(x)
@@ -273,6 +293,80 @@ def update(frame):
     return lines + [surface, left_patch, right_patch]
 
 
-ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
+def run_animation():
+    """Create the matplotlib animation using the current global parameters."""
+    global fig, ax, lines, surface, left_patch, right_patch
 
-plt.show()
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    # initial background following the optical interface
+    t0 = (np.sin(phase0) + 1) / 2
+    start_angle = np.arcsin(np.clip(aperture / radius, -1 + 1e-9, 1 - 1e-9))
+    end_angle = np.arcsin(aperture / far_radius)
+    angle0 = (1 - t0) * start_angle + t0 * end_angle
+    r0 = aperture / np.sin(angle0)
+    x0 = np.where(
+        np.abs(surf_y) <= r0,
+        np.sqrt(r0**2 - surf_y**2) - r0 + plane_x,
+        np.nan,
+    )
+    left_xy, right_xy = build_patch(x0)
+    left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
+    right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
+    ax.add_patch(left_patch)
+    ax.add_patch(right_patch)
+
+    # optical element that morphs from a semi-circle to a plane
+    surface, = ax.plot([], [], lw=2, color="black")
+
+    # rays
+    lines = []
+    for _ in range(n_rays):
+        line, = ax.plot([], [], color="red")
+        lines.append(line)
+
+    ani = FuncAnimation(fig, update, frames=frames, interval=interval, blit=True)
+    plt.show()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Optical aberration animation")
+    parser.add_argument("--n-rays", type=int, default=n_rays, help="number of rays")
+    parser.add_argument("--frames", type=int, default=frames, help="animation frames")
+    parser.add_argument("--max-in-angle", type=float, default=max_in_angle, help="maximum incoming angle (radians)")
+    parser.add_argument("--ray-range", type=float, default=y_range, help="half range of ray starting y positions")
+    parser.add_argument("--plane-x", type=float, default=plane_x, help="x position of the plane at t=1")
+    parser.add_argument("--radius", type=float, default=radius, help="initial surface radius")
+    parser.add_argument("--far-radius", type=float, default=far_radius, help="effective radius at t=1")
+    parser.add_argument("--aperture", type=float, default=aperture, help="half height of the optical element")
+    parser.add_argument("--surf-samples", type=int, default=surf_samples, help="number of points for the surface")
+    parser.add_argument("--interval", type=int, default=interval, help="animation frame interval (ms)")
+    parser.add_argument("--n-ratio", type=float, default=ref_index_ratio, help="refractive index ratio")
+    parser.add_argument("--x-start", type=float, default=x_start, help="x coordinate where rays start")
+    parser.add_argument("--x-final", type=float, default=x_final, help="x coordinate where rays end")
+    args = parser.parse_args()
+
+    n_rays = args.n_rays
+    frames = args.frames
+    max_in_angle = args.max_in_angle
+    y_range = args.ray_range
+    plane_x = args.plane_x
+    radius = args.radius
+    far_radius = args.far_radius
+    aperture = args.aperture
+    surf_samples = args.surf_samples
+    interval = args.interval
+    ref_index_ratio = args.n_ratio
+    x_start = args.x_start
+    x_final = args.x_final
+
+    incoming_final_angles = np.linspace(max_in_angle, -max_in_angle, n_rays)
+    ys = np.linspace(-y_range, y_range, n_rays)
+    surf_y = np.linspace(-aperture, aperture, surf_samples)
+    ylim = (-aperture, aperture)
+
+    run_animation()

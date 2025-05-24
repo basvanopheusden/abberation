@@ -18,3 +18,23 @@ Run the animation with:
 ```bash
 python3 aberration_animation.py
 ```
+
+Several parameters can be overridden from the command line.  The most
+useful options are:
+
+| Option | Meaning |
+| ------ | ------- |
+| `--n-rays` | Number of rays traced through the optic (default `11`). |
+| `--frames` | Total number of animation frames (default `120`). |
+| `--max-in-angle` | Final incoming angle in radians at the edges of the beam (default `0.3`). |
+| `--plane-x` | X position of the optical interface when it becomes flat (default `0.5`). |
+| `--radius` | Radius of the spherical surface at the start of the animation (default `0.5`). |
+| `--far-radius` | Effective radius when the surface is nearly a plane (default `50`). |
+| `--aperture` | Half height of the optical element and view window (default `0.6`). |
+| `--interval` | Delay between animation frames in milliseconds (default `50`). |
+
+For example, to animate with more rays and a slower frame rate run:
+
+```bash
+python3 aberration_animation.py --n-rays 21 --interval 100
+```
