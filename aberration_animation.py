@@ -40,11 +40,12 @@ ax.set_ylim(-0.6, 0.6)
 ax.set_aspect("equal")
 ax.axis("off")
 
-# optical elements
-lens = plt.Circle((0.0, 0.0), 0.5, fill=False, lw=2, color="blue")
-plane = plt.Line2D([plane_x, plane_x], [-0.6, 0.6], lw=2, color="green")
-ax.add_patch(lens)
-ax.add_line(plane)
+# optical element that morphs from a semi-circle to a plane
+radius = 0.5
+surf_y = np.linspace(-radius, radius, 200)
+semicircle_x = np.sqrt(radius**2 - surf_y**2)
+plane_xs = np.full_like(surf_y, plane_x)
+surface, = ax.plot([], [], lw=2, color="blue")
 
 # rays
 lines = []
@@ -63,9 +64,9 @@ def update(frame):
         pts = (1 - t) * p1 + t * p2
         line.set_data(pts[:, 0], pts[:, 1])
 
-    lens.set_alpha(1 - t)
-    plane.set_alpha(t)
-    return lines + [lens, plane]
+    x = (1 - t) * semicircle_x + t * plane_xs
+    surface.set_data(x, surf_y)
+    return lines + [surface]
 
 
 ani = FuncAnimation(fig, update, frames=frames, interval=50, blit=True)
