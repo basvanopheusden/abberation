@@ -10,6 +10,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon
 
 from . import optics, params
+from .analysis import find_optimal_max_in_angle
 
 
 Lines = List[plt.Line2D]
@@ -44,11 +45,15 @@ def update(frame: int):
     """Animation callback updating all artists for ``frame``."""
     phase = (frame / params.frames) * 2 * np.pi
     t = (np.sin(phase) + 1) / 2
-    x, slopes, intercepts, kinks = optics.compute_frame(t, n_ratio=params.ref_index_ratio)
+    best_angle, _ = find_optimal_max_in_angle(t)
+    in_angles = np.linspace(best_angle, -best_angle, params.n_rays)
+    x, slopes, intercepts, kinks = optics.compute_frame(
+        t, n_ratio=params.ref_index_ratio, incoming_angles=in_angles
+    )
     for i, line in enumerate(lines):
         x_int = kinks[i]
         y_int = params.ys[i]
-        in_angle = t * params.incoming_final_angles[i]
+        in_angle = t * in_angles[i]
         m_in = np.tan(in_angle)
         y_start = y_int - m_in * (x_int - params.x_start)
         y_final = slopes[i] * params.x_final + intercepts[i]
