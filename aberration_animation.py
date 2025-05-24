@@ -106,7 +106,10 @@ def compute_frame(t, n_ratio=1.4):
             normal_angle = 0.0
 
         phi_in = np.abs(normal_angle)
-        phi_out = np.arcsin(np.sin(phi_in) / n_ratio)
+        # multiply by ``n_ratio`` so that ``n_ratio > 1`` focuses the rays
+        phi_out = np.arcsin(
+            np.clip(np.sin(phi_in) * n_ratio, -1 + 1e-9, 1 - 1e-9)
+        )
         orient = normal_angle - np.sign(normal_angle) * phi_out
         m = np.tan(orient)
         b = y - m * x_int
