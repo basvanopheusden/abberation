@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon
+from scipy.signal import medfilt
 
 from . import optics, params
 from .analysis import find_optimal_max_in_angle
@@ -86,10 +87,17 @@ def run_animation() -> FuncAnimation:
         optimal_angles.append(angle)
         optimal_distances.append(dist)
     print("Finished calculating optimal angles.")
-    # plot optimal angle as a function of t before starting the animation
+
+    # Smooth the optimal angle curve to remove outliers from failed optimizations
     sort_idx = np.argsort(t_values)
-    t_sorted = np.array(t_values)[sort_idx]
+    unsort_idx = np.argsort(sort_idx)
     angles_sorted = np.array(optimal_angles)[sort_idx]
+    if angles_sorted.size >= 5:
+        angles_sorted = medfilt(angles_sorted, kernel_size=5)
+    optimal_angles = list(angles_sorted[unsort_idx])
+
+    # plot optimal angle as a function of t before starting the animation
+    t_sorted = np.array(t_values)[sort_idx]
     distances_sorted = np.array(optimal_distances)[sort_idx]
     plt.figure()
     plt.plot(t_sorted, angles_sorted)
