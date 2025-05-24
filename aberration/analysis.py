@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional, Sequence, Tuple
 
+from scipy import optimize
+
 import numpy as np
 
 from . import optics, params
@@ -50,14 +52,19 @@ def find_optimal_max_in_angle(
     search_angles: Optional[Sequence[float]] = None,
 ) -> Tuple[float, float]:
     """Return ``max_in_angle`` that minimizes :func:`total_distance_to_focus`."""
-    if search_angles is None:
-        search_angles = np.linspace(0.0, 2.0, 1000)
+    if search_angles is not None:
+        best_angle = float(search_angles[0])
+        min_dist = float("inf")
+        for angle in search_angles:
+            dist = total_distance_to_focus(t, angle, focal_point)
+            if dist < min_dist:
+                min_dist = dist
+                best_angle = float(angle)
+        return best_angle, min_dist
 
-    best_angle = float(search_angles[0])
-    min_dist = float('inf')
-    for angle in search_angles:
-        dist = total_distance_to_focus(t, angle, focal_point)
-        if dist < min_dist:
-            min_dist = dist
-            best_angle = float(angle)
-    return best_angle, min_dist
+    result = optimize.minimize_scalar(
+        lambda ang: total_distance_to_focus(t, float(ang), focal_point),
+        bounds=(0.0, 2.0),
+        method="bounded",
+    )
+    return float(result.x), float(result.fun)
