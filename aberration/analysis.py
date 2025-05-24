@@ -63,8 +63,6 @@ def find_optimal_max_in_angle(
         return best_angle, min_dist
 
     result = optimize.minimize_scalar(
-        lambda ang: total_distance_to_focus(t, float(ang), focal_point),
-        bounds=(0.0, 2.0),
-        method="bounded",
+        lambda ang: total_distance_to_focus(t, float(ang), focal_point)
     )
     return float(result.x), float(result.fun)
