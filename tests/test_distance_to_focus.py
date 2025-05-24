@@ -10,13 +10,14 @@ from aberration.optics import compute_frame
 
 def test_distance_scalar():
     result = distance_to_focus(1.0, 0.0)
-    expected = np.abs(1.0 * 1.2 - 0.0) / np.sqrt(1.0 ** 2 + 1)
+    expected = np.abs((0.0 - 0.0) / 1.0 - 1.2)
     assert np.isclose(result, expected)
 
 
 def test_distance_vectorized():
     _, slopes, intercepts, _ = compute_frame(0.2)
     result = distance_to_focus(slopes, intercepts)
-    expected = np.abs(slopes * 1.2 + intercepts) / np.sqrt(slopes ** 2 + 1)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        expected = np.abs(np.where(slopes != 0, (0.0 - intercepts) / slopes, 1.2) - 1.2)
     assert np.allclose(result, expected)
 
