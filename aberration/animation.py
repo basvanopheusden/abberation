@@ -80,6 +80,16 @@ def run_animation() -> FuncAnimation:
         angle, _ = find_optimal_max_in_angle(t)
         optimal_angles.append(angle)
     print("Finished calculating optimal angles.")
+    # plot optimal angle as a function of t before starting the animation
+    sort_idx = np.argsort(t_values)
+    t_sorted = np.array(t_values)[sort_idx]
+    angles_sorted = np.array(optimal_angles)[sort_idx]
+    plt.figure()
+    plt.plot(t_sorted, angles_sorted)
+    plt.xlabel("t")
+    plt.ylabel("optimal angle (rad)")
+    plt.title("Optimal angle vs t")
+    plt.show()
     for t_val in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
         angle, _ = find_optimal_max_in_angle(t_val)
         print(f"t={t_val:.1f} optimal angle={angle:.3f}")
