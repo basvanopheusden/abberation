@@ -39,13 +39,14 @@ lines: Lines = []
 surface = None
 left_patch = None
 right_patch = None
+optimal_angles: List[float] = []
+t_values: List[float] = []
 
 
 def update(frame: int):
     """Animation callback updating all artists for ``frame``."""
-    phase = (frame / params.frames) * 2 * np.pi
-    t = (np.sin(phase) + 1) / 2
-    best_angle, _ = find_optimal_max_in_angle(t)
+    t = t_values[frame]
+    best_angle = optimal_angles[frame]
     in_angles = np.linspace(best_angle, -best_angle, params.n_rays)
     x, slopes, intercepts, kinks = optics.compute_frame(
         t, n_ratio=params.ref_index_ratio, incoming_angles=in_angles
@@ -67,7 +68,21 @@ def update(frame: int):
 
 def run_animation() -> FuncAnimation:
     """Create and display the matplotlib animation and return it."""
-    global fig, ax, lines, surface, left_patch, right_patch
+    global fig, ax, lines, surface, left_patch, right_patch, optimal_angles, t_values
+
+    print("Calculating optimal angles ...")
+    t_values = []
+    optimal_angles = []
+    for frame in range(params.frames):
+        phase = (frame / params.frames) * 2 * np.pi
+        t = (np.sin(phase) + 1) / 2
+        t_values.append(t)
+        angle, _ = find_optimal_max_in_angle(t)
+        optimal_angles.append(angle)
+    print("Finished calculating optimal angles.")
+    for t_val in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+        angle, _ = find_optimal_max_in_angle(t_val)
+        print(f"t={t_val:.1f} optimal angle={angle:.3f}")
 
     fig, ax = plt.subplots(figsize=params.figsize)
     ax.set_xlim(*params.xlim)
