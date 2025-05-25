@@ -49,3 +49,8 @@ Run it with:
 ```bash
 python3 plane_wave_animation.py
 ```
+
+Like the main aberration animation script, most parameters can be overridden
+from the command line. Useful options include `--n-rays`, `--frames`,
+`--plane-x`, `--radius`, `--far-radius`, `--aperture`, `--surf-samples`,
+`--interval`, `--n-ratio`, `--x-start` and `--x-final`.
