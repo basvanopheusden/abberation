@@ -135,16 +135,20 @@ class Animator:
         ax.add_patch(self.right_patch)
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
-        self.lines = [ax.plot([], [], color="red")[0] for _ in range(params.n_rays)]
+        self.lines = [
+            ax.plot([], [], color="red", lw=1)[0]
+            for _ in range(params.n_rays)
+        ]
         self.ext_lines = [
-            ax.plot([], [], color="gray", ls="--")[0] for _ in range(params.n_rays)
+            ax.plot([], [], color="gray", lw=1)[0]
+            for _ in range(params.n_rays)
         ]
 
         (self.focal_marker,) = ax.plot(
             self.focal_x,
             0.0,
-            marker="x",
-            color="blue",
+            marker="o",
+            color="red",
             markersize=8,
             lw=2,
             zorder=3,
@@ -169,7 +173,7 @@ class Animator:
         (self.ext_focal_marker,) = ax.plot(
             ext_focal_x,
             0.0,
-            marker="x",
+            marker="o",
             color="gray",
             markersize=8,
             lw=2,
