@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from typing import List
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.animation import PillowWriter
 from matplotlib.patches import Polygon
 from scipy.signal import medfilt
 
@@ -71,8 +73,16 @@ def update(frame: int):
     return lines + [surface, left_patch, right_patch, focal_marker]
 
 
-def run_animation() -> FuncAnimation:
-    """Create and display the matplotlib animation and return it."""
+def run_animation(
+    save: bool | None = None, prefix: str = "aberration"
+) -> FuncAnimation:
+    """Create and display the matplotlib animation and return it.
+
+    If ``save`` is ``True`` the first and last frame are written as PNG files
+    with ``prefix`` appended by ``_first.png`` and ``_last.png``.  The complete
+    animation is also stored as ``prefix`` ``.gif``.  Saving is automatically
+    disabled when ``pytest`` is running.
+    """
     global fig, ax, lines, surface, left_patch, right_patch, focal_marker, optimal_angles, optimal_distances, t_values
 
     print("Calculating optimal angles ...")
@@ -153,5 +163,18 @@ def run_animation() -> FuncAnimation:
     anim = FuncAnimation(
         fig, update, frames=params.frames, interval=params.interval, blit=True
     )
+
+    if save is None:
+        save = "PYTEST_CURRENT_TEST" not in os.environ
+    if save:
+        update(0)
+        fig.canvas.draw()
+        fig.savefig(f"{prefix}_first.png")
+        update(len(t_values) - 1)
+        fig.canvas.draw()
+        fig.savefig(f"{prefix}_last.png")
+        writer = PillowWriter(fps=int(1000 / params.interval))
+        anim.save(f"{prefix}.gif", writer=writer)
+
     plt.show()
     return anim
