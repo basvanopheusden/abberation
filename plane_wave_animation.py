@@ -172,6 +172,7 @@ def main() -> None:
     params.ys = np.linspace(-params.y_range, params.y_range, params.n_rays)
     params.surf_y = np.linspace(-params.aperture, params.aperture, params.surf_samples)
     params.ylim = (-params.aperture, params.aperture)
+    params.xlim = (params.x_start, params.x_final)
 
     Animator().run()
 
