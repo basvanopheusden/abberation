@@ -31,6 +31,12 @@ def main() -> None:
         default=params.focal_point,
         help="focal point coordinates as 'x y'",
     )
+    parser.add_argument(
+        "--save-prefix",
+        type=str,
+        default="aberration",
+        help="prefix for saved images (set to '' to disable saving)",
+    )
     args = parser.parse_args()
 
     params.n_rays = args.n_rays
@@ -53,7 +59,9 @@ def main() -> None:
     params.surf_y = np.linspace(-params.aperture, params.aperture, params.surf_samples)
     params.ylim = (-params.aperture, params.aperture)
 
-    animation.run_animation()
+    prefix = args.save_prefix
+    save = bool(prefix)
+    animation.run_animation(save=save, prefix=prefix or "aberration")
 
 
 if __name__ == "__main__":

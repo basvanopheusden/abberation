@@ -43,6 +43,11 @@ For example, to animate with more rays and a slower frame rate run:
 python3 aberration_animation.py --n-rays 21 --interval 100
 ```
 
+When run outside the test suite, this script also saves the first and last
+frames as `aberration_first.png` and `aberration_last.png`.  In addition the
+entire animation is written to `aberration.gif`. Saving is skipped
+automatically when `pytest` is running.
+
 A second script `plane_wave_animation.py` demonstrates a different scenario. It begins with a plane wave of horizontal rays striking the curved surface and then gradually flattens the interface while keeping the outgoing rays fixed.
 Run it with:
 
