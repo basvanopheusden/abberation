@@ -71,8 +71,10 @@ class Animator:
         self.focal_x = _compute_focal_point(slopes, intercepts)
         self.t_values = np.linspace(0.0, 1.0, params.frames)
         self.lines: Lines = []
+        self.ext_lines: Lines = []
         self.surface = None
         self.focal_marker = None
+        self.ext_focal_marker = None
         self.left_patch = None
         self.right_patch = None
 
@@ -84,6 +86,8 @@ class Animator:
         left_xy, right_xy = build_patch(x_surf)
         self.left_patch.set_xy(left_xy)
         self.right_patch.set_xy(right_xy)
+        in_slopes = []
+        in_intercepts = []
         for i, line in enumerate(self.lines):
             m_out = self.base_slopes[i]
             b_out = self.base_intercepts[i]
@@ -93,13 +97,27 @@ class Animator:
             in_angle = _incoming_angle(out_angle, normal_angle)
             m_in = np.tan(in_angle)
             b_in = y_int - m_in * x_int
+            in_slopes.append(m_in)
+            in_intercepts.append(b_in)
             y_start = m_in * params.x_start + b_in
             y_final = m_out * params.x_final + b_out
             line.set_data(
                 [params.x_start, x_int, params.x_final],
                 [y_start, y_int, y_final],
             )
-        return self.lines + [self.surface, self.left_patch, self.right_patch, self.focal_marker]
+            ext_line = self.ext_lines[i]
+            y_ext = m_in * params.x_final + b_in
+            ext_line.set_data(
+                [x_int, params.x_final],
+                [y_int, y_ext],
+            )
+        focal_x = _compute_focal_point(np.array(in_slopes), np.array(in_intercepts))
+        self.ext_focal_marker.set_data([focal_x], [0.0])
+        return (
+            self.lines
+            + self.ext_lines
+            + [self.surface, self.left_patch, self.right_patch, self.focal_marker, self.ext_focal_marker]
+        )
 
     def run(self) -> FuncAnimation:
         fig, ax = plt.subplots(figsize=params.figsize)
@@ -118,12 +136,41 @@ class Animator:
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
         self.lines = [ax.plot([], [], color="red")[0] for _ in range(params.n_rays)]
+        self.ext_lines = [
+            ax.plot([], [], color="gray", ls="--")[0] for _ in range(params.n_rays)
+        ]
 
         (self.focal_marker,) = ax.plot(
             self.focal_x,
             0.0,
             marker="x",
             color="blue",
+            markersize=8,
+            lw=2,
+            zorder=3,
+        )
+
+        # initial focal point for extended incoming rays
+        r0 = optics._surface_radius(self.t_values[0])
+        in_slopes = []
+        in_intercepts = []
+        for i in range(params.n_rays):
+            m_out = self.base_slopes[i]
+            b_out = self.base_intercepts[i]
+            x_int, y_int = _line_circle_intersection(m_out, b_out, r0)
+            normal_angle = np.arctan2(y_int, x_int - (params.plane_x - r0))
+            out_angle = np.arctan(m_out)
+            in_angle = _incoming_angle(out_angle, normal_angle)
+            m_in = np.tan(in_angle)
+            b_in = y_int - m_in * x_int
+            in_slopes.append(m_in)
+            in_intercepts.append(b_in)
+        ext_focal_x = _compute_focal_point(np.array(in_slopes), np.array(in_intercepts))
+        (self.ext_focal_marker,) = ax.plot(
+            ext_focal_x,
+            0.0,
+            marker="x",
+            color="gray",
             markersize=8,
             lw=2,
             zorder=3,
