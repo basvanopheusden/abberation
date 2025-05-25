@@ -24,7 +24,7 @@ useful options are:
 
 | Option | Meaning |
 | ------ | ------- |
-| `--n-rays` | Number of rays traced through the optic (default `11`). |
+| `--n-rays` | Number of rays traced through the optic (default `10`). |
 | `--frames` | Total number of animation frames (default `120`). |
 | `--max-in-angle` | Final incoming angle in radians at the edges of the beam (default `0.3`). |
 | `--plane-x` | X position of the optical interface when it becomes flat (default `0.5`). |
@@ -40,7 +40,7 @@ useful options are:
 For example, to animate with more rays and a slower frame rate run:
 
 ```bash
-python3 aberration_animation.py --n-rays 21 --interval 100
+python3 aberration_animation.py --n-rays 20 --interval 100
 ```
 
 When run outside the test suite, this script also saves the first and last
