@@ -28,7 +28,10 @@ def _compute_focal_point(slopes: np.ndarray, intercepts: np.ndarray) -> float:
     """Return the x location that best approximates the focal point."""
     slopes = np.asarray(slopes)
     intercepts = np.asarray(intercepts)
-    return -np.sum(slopes * intercepts) / np.sum(slopes ** 2)
+    denom = np.sum(slopes ** 2)
+    if denom == 0:
+        return np.nan
+    return -np.sum(slopes * intercepts) / denom
 
 
 def _line_circle_intersection(m: float, b: float, r: float) -> tuple[float, float]:
@@ -69,15 +72,19 @@ class Animator:
         self.focal_x = _compute_focal_point(slopes, intercepts)
         self.t_values = np.linspace(0.0, 1.0, params.frames)
         self.lines: Lines = []
+        self.ext_lines: Lines = []
         self.surface = None
         self.focal_marker = None
-
+        self.incoming_focal_marker = None
+        
     def _update(self, frame: int):
         t = self.t_values[frame]
         r = optics._surface_radius(t)
         x_surf = optics.surface_coordinates(t)
         self.surface.set_data(x_surf, params.surf_y)
-        for i, line in enumerate(self.lines):
+        in_slopes = []
+        in_intercepts = []
+        for i, (line, dline) in enumerate(zip(self.lines, self.ext_lines)):
             m_out = self.base_slopes[i]
             b_out = self.base_intercepts[i]
             x_int, y_int = _line_circle_intersection(m_out, b_out, r)
@@ -86,13 +93,26 @@ class Animator:
             in_angle = _incoming_angle(out_angle, normal_angle)
             m_in = np.tan(in_angle)
             b_in = y_int - m_in * x_int
+            in_slopes.append(m_in)
+            in_intercepts.append(b_in)
+
             y_start = m_in * params.x_start + b_in
             y_final = m_out * params.x_final + b_out
             line.set_data(
                 [params.x_start, x_int, params.x_final],
                 [y_start, y_int, y_final],
             )
-        return self.lines + [self.surface, self.focal_marker]
+
+            y_left = m_in * params.xlim[0] + b_in
+            dline.set_data(
+                [params.xlim[0], x_int],
+                [y_left, y_int],
+            )
+
+        focus_in = _compute_focal_point(np.array(in_slopes), np.array(in_intercepts))
+        self.incoming_focal_marker.set_data(focus_in, 0.0)
+        artists = self.lines + self.ext_lines + [self.surface, self.focal_marker, self.incoming_focal_marker]
+        return artists
 
     def run(self) -> FuncAnimation:
         fig, ax = plt.subplots(figsize=params.figsize)
@@ -103,6 +123,10 @@ class Animator:
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
         self.lines = [ax.plot([], [], color="red")[0] for _ in range(params.n_rays)]
+        self.ext_lines = [
+            ax.plot([], [], color="darkgray", ls="--")[0]
+            for _ in range(params.n_rays)
+        ]
 
         (self.focal_marker,) = ax.plot(
             self.focal_x,
@@ -112,6 +136,16 @@ class Animator:
             markersize=8,
             lw=2,
             zorder=3,
+        )
+
+        (self.incoming_focal_marker,) = ax.plot(
+            np.nan,
+            np.nan,
+            marker="x",
+            color="gray",
+            markersize=8,
+            lw=2,
+            zorder=2,
         )
 
         anim = FuncAnimation(
