@@ -9,30 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter
-from matplotlib.patches import Polygon
 from scipy.signal import medfilt
 
 from . import optics, params
 from .analysis import find_optimal_max_in_angle
+from .utils import build_patch, init_axes
 
 
 Lines = List[plt.Line2D]
-
-
-def build_patch(x_values):
-    """Return coordinates for the background patches."""
-    mask = ~np.isnan(x_values)
-    left_xy = (
-        [params.xlim[0], params.ylim[0]],
-        [params.xlim[0], params.ylim[1]],
-        *zip(x_values[mask][::-1], params.surf_y[mask][::-1]),
-    )
-    right_xy = (
-        [params.xlim[1], params.ylim[0]],
-        [params.xlim[1], params.ylim[1]],
-        *zip(x_values[mask][::-1], params.surf_y[mask][::-1]),
-    )
-    return np.array(left_xy), np.array(right_xy)
 
 
 # mutable objects used while animating
@@ -46,6 +30,51 @@ focal_marker = None
 optimal_angles: List[float] = []
 optimal_distances: List[float] = []
 t_values: List[float] = []
+
+
+def _calculate_optimal_angles() -> tuple[list[float], list[float], list[float]]:
+    """Return ``t`` values and optimal angles/distances for each frame."""
+    t_vals: list[float] = []
+    angles: list[float] = []
+    dists: list[float] = []
+    for frame in range(params.frames):
+        phase = (frame / params.frames) * 2 * np.pi
+        t = (np.sin(phase) + 1) / 2
+        t_vals.append(t)
+        angle, dist = find_optimal_max_in_angle(t, focal_point=params.focal_point)
+        angles.append(angle)
+        dists.append(dist)
+    return t_vals, angles, dists
+
+
+def _smooth_angles(t_vals: list[float], angles: list[float]) -> list[float]:
+    """Return ``angles`` after applying a median filter."""
+    sort_idx = np.argsort(t_vals)
+    unsort_idx = np.argsort(sort_idx)
+    angles_sorted = np.array(angles)[sort_idx]
+    if angles_sorted.size >= 5:
+        angles_sorted = medfilt(angles_sorted, kernel_size=5)
+    return list(angles_sorted[unsort_idx])
+
+
+def _plot_diagnostics(t_vals: list[float], angles: list[float], dists: list[float]) -> None:
+    """Plot optimization diagnostics before running the animation."""
+    sort_idx = np.argsort(t_vals)
+    t_sorted = np.array(t_vals)[sort_idx]
+    angles_sorted = np.array(angles)[sort_idx]
+    dists_sorted = np.array(dists)[sort_idx]
+    plt.figure()
+    plt.plot(t_sorted, angles_sorted)
+    plt.xlabel("t")
+    plt.ylabel("optimal angle (rad)")
+    plt.title("Optimal angle vs t")
+    plt.show()
+    plt.figure()
+    plt.plot(t_sorted, dists_sorted)
+    plt.xlabel("t")
+    plt.ylabel("distance")
+    plt.title("Minimum distance vs t")
+    plt.show()
 
 
 def update(frame: int):
@@ -86,59 +115,17 @@ def run_animation(
     global fig, ax, lines, surface, left_patch, right_patch, focal_marker, optimal_angles, optimal_distances, t_values
 
     print("Calculating optimal angles ...")
-    t_values = []
-    optimal_angles = []
-    optimal_distances = []
-    for frame in range(params.frames):
-        phase = (frame / params.frames) * 2 * np.pi
-        t = (np.sin(phase) + 1) / 2
-        t_values.append(t)
-        angle, dist = find_optimal_max_in_angle(t, focal_point=params.focal_point)
-        optimal_angles.append(angle)
-        optimal_distances.append(dist)
+    t_values, optimal_angles, optimal_distances = _calculate_optimal_angles()
     print("Finished calculating optimal angles.")
 
-    # Smooth the optimal angle curve to remove outliers from failed optimizations
-    sort_idx = np.argsort(t_values)
-    unsort_idx = np.argsort(sort_idx)
-    angles_sorted = np.array(optimal_angles)[sort_idx]
-    if angles_sorted.size >= 5:
-        angles_sorted = medfilt(angles_sorted, kernel_size=5)
-    optimal_angles = list(angles_sorted[unsort_idx])
+    optimal_angles = _smooth_angles(t_values, optimal_angles)
 
-    # plot optimal angle as a function of t before starting the animation
-    t_sorted = np.array(t_values)[sort_idx]
-    distances_sorted = np.array(optimal_distances)[sort_idx]
-    plt.figure()
-    plt.plot(t_sorted, angles_sorted)
-    plt.xlabel("t")
-    plt.ylabel("optimal angle (rad)")
-    plt.title("Optimal angle vs t")
-    plt.show()
-    # plot the minimal distance returned by the optimizer for each t
-    plt.figure()
-    plt.plot(t_sorted, distances_sorted)
-    plt.xlabel("t")
-    plt.ylabel("distance")
-    plt.title("Minimum distance vs t")
-    plt.show()
+    _plot_diagnostics(t_values, optimal_angles, optimal_distances)
     for t_val in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
         angle, _ = find_optimal_max_in_angle(t_val, focal_point=params.focal_point)
         print(f"t={t_val:.1f} optimal angle={angle:.3f}")
 
-    fig, ax = plt.subplots(figsize=params.figsize)
-    ax.set_xlim(*params.xlim)
-    ax.set_ylim(*params.ylim)
-    ax.set_aspect("equal")
-    ax.axis("off")
-
-    t0 = (np.sin(params.phase0) + 1) / 2
-    x0 = optics.surface_coordinates(t0)
-    left_xy, right_xy = build_patch(x0)
-    left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
-    right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
-    ax.add_patch(left_patch)
-    ax.add_patch(right_patch)
+    fig, ax, left_patch, right_patch = init_axes()
 
     # draw the focal point as a blue cross
     global focal_marker
