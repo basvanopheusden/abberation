@@ -34,6 +34,8 @@ def build_patch(x_values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 def init_axes() -> Tuple[plt.Figure, plt.Axes, Polygon, Polygon]:
     """Return a matplotlib figure, axis and background patches."""
     fig, ax = plt.subplots(figsize=params.figsize)
+    # fill the entire figure area when animating
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     ax.set_xlim(*params.xlim)
     ax.set_ylim(*params.ylim)
     ax.set_aspect("equal")
