@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 
 # number of rays and animation frames
-n_rays: int = 11
+n_rays: int = 10
 frames: int = 120
 
 # final incoming ray angles at ``t=1``

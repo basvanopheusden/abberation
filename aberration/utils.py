@@ -33,6 +33,7 @@ def build_patch(x_values: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 def init_axes() -> Tuple[plt.Figure, plt.Axes, Polygon, Polygon]:
     """Return a matplotlib figure, axis and background patches."""
+    assert params.n_rays % 2 == 0, "n_rays must be even"
     fig, ax = plt.subplots(figsize=params.figsize)
     # fill the entire figure area when animating
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
@@ -48,5 +49,6 @@ def init_axes() -> Tuple[plt.Figure, plt.Axes, Polygon, Polygon]:
     right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
     ax.add_patch(left_patch)
     ax.add_patch(right_patch)
+    ax.axhline(0.0, color="black", linestyle="--", lw=1)
 
     return fig, ax, left_patch, right_patch
