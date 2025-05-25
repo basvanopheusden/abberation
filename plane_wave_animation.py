@@ -17,10 +17,9 @@ from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.patches import Polygon
 
 from aberration import optics, params
-from aberration.animation import build_patch
+from aberration.utils import build_patch, init_axes
 
 
 Lines = List[plt.Line2D]
@@ -120,19 +119,7 @@ class Animator:
         )
 
     def run(self) -> FuncAnimation:
-        fig, ax = plt.subplots(figsize=params.figsize)
-        ax.set_xlim(*params.xlim)
-        ax.set_ylim(*params.ylim)
-        ax.set_aspect("equal")
-        ax.axis("off")
-
-        t0 = (np.sin(params.phase0) + 1) / 2
-        x0 = optics.surface_coordinates(t0)
-        left_xy, right_xy = build_patch(x0)
-        self.left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
-        self.right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
-        ax.add_patch(self.left_patch)
-        ax.add_patch(self.right_patch)
+        fig, ax, self.left_patch, self.right_patch = init_axes()
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
         self.lines = [
