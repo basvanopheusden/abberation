@@ -53,6 +53,6 @@ def test_animator_run_and_update(monkeypatch):
     animation = anim.run()
     assert isinstance(animation, FuncAnimation)
     artists = anim._update(0)
-    assert len(artists) == params.n_rays + 2
+    assert len(artists) == params.n_rays + 4
     for line in anim.lines:
         assert len(line.get_xdata()) == 3
