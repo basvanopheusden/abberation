@@ -43,7 +43,7 @@ def total_distance_to_focus(
     """Return the summed distance of all rays to ``focal_point``."""
     in_angles = np.linspace(max_in_angle, -max_in_angle, params.n_rays)
     _, slopes, intercepts, _ = optics.compute_frame(t, incoming_angles=in_angles)
-    return (float(np.sum(distance_to_focus(slopes, intercepts, focal_point)))-2)**2
+    return float(np.sum(distance_to_focus(slopes, intercepts, focal_point)))
 
 
 def find_optimal_max_in_angle(
