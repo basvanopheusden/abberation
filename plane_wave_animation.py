@@ -17,8 +17,10 @@ from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
 from aberration import optics, params
+from aberration.animation import build_patch
 
 
 Lines = List[plt.Line2D]
@@ -71,12 +73,17 @@ class Animator:
         self.lines: Lines = []
         self.surface = None
         self.focal_marker = None
+        self.left_patch = None
+        self.right_patch = None
 
     def _update(self, frame: int):
         t = self.t_values[frame]
         r = optics._surface_radius(t)
         x_surf = optics.surface_coordinates(t)
         self.surface.set_data(x_surf, params.surf_y)
+        left_xy, right_xy = build_patch(x_surf)
+        self.left_patch.set_xy(left_xy)
+        self.right_patch.set_xy(right_xy)
         for i, line in enumerate(self.lines):
             m_out = self.base_slopes[i]
             b_out = self.base_intercepts[i]
@@ -92,7 +99,7 @@ class Animator:
                 [params.x_start, x_int, params.x_final],
                 [y_start, y_int, y_final],
             )
-        return self.lines + [self.surface, self.focal_marker]
+        return self.lines + [self.surface, self.left_patch, self.right_patch, self.focal_marker]
 
     def run(self) -> FuncAnimation:
         fig, ax = plt.subplots(figsize=params.figsize)
@@ -100,6 +107,14 @@ class Animator:
         ax.set_ylim(*params.ylim)
         ax.set_aspect("equal")
         ax.axis("off")
+
+        t0 = (np.sin(params.phase0) + 1) / 2
+        x0 = optics.surface_coordinates(t0)
+        left_xy, right_xy = build_patch(x0)
+        self.left_patch = Polygon(left_xy, closed=True, fc="#F8F6ED", ec=None, zorder=0)
+        self.right_patch = Polygon(right_xy, closed=True, fc="#EFE9DE", ec=None, zorder=0)
+        ax.add_patch(self.left_patch)
+        ax.add_patch(self.right_patch)
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
         self.lines = [ax.plot([], [], color="red")[0] for _ in range(params.n_rays)]
