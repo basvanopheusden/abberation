@@ -16,7 +16,8 @@ from typing import List
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
+import os
 
 from aberration import optics, params
 from aberration.utils import build_patch, init_axes
@@ -118,7 +119,14 @@ class Animator:
             + [self.surface, self.left_patch, self.right_patch, self.focal_marker, self.ext_focal_marker]
         )
 
-    def run(self) -> FuncAnimation:
+    def run(self, save: bool | None = None, prefix: str = "plane_wave") -> FuncAnimation:
+        """Create and display the animation and optionally save images and a gif.
+
+        If ``save`` is ``True`` the first and last frame are written as PNG files
+        with ``prefix`` appended by ``_first.png`` and ``_last.png``. The full
+        animation is also saved as ``prefix`` ``.gif``. Saving is automatically
+        disabled when ``pytest`` is running.
+        """
         fig, ax, self.left_patch, self.right_patch = init_axes()
 
         (self.surface,) = ax.plot([], [], lw=2, color="black")
@@ -174,6 +182,19 @@ class Animator:
             interval=params.interval,
             blit=True,
         )
+
+        if save is None:
+            save = "PYTEST_CURRENT_TEST" not in os.environ
+        if save:
+            self._update(0)
+            fig.canvas.draw()
+            fig.savefig(f"{prefix}_first.png")
+            self._update(len(self.t_values) - 1)
+            fig.canvas.draw()
+            fig.savefig(f"{prefix}_last.png")
+            writer = PillowWriter(fps=int(1000 / params.interval))
+            anim.save(f"{prefix}.gif", writer=writer)
+
         plt.show()
         return anim
 
