@@ -60,6 +60,11 @@ from the command line. Useful options include `--n-rays`, `--frames`,
 `--plane-x`, `--radius`, `--far-radius`, `--aperture`, `--surf-samples`,
 `--interval`, `--n-ratio`, `--x-start` and `--x-final`.
 
+When run outside the test suite, `plane_wave_animation.py` also saves the first
+and last frames as `plane_wave_first.png` and `plane_wave_last.png`. The full
+animation is stored as `plane_wave.gif`. Saving is skipped automatically during
+`pytest` runs.
+
 ## Development
 
 Run the tests with:
